@@ -53,6 +53,11 @@ Example of calling uploadPhoto:
                           'authorizedOauthToken', 'authorizedAauthTokenSecret',
                           {title: 'Title of the photo'});
   
+## Notes / TODO
+
+- Currently uploadPhoto does not take any callback. It should take a callback so the caller can know whether the photo could be uploaded or not, i.e. the resulting photo id or an error code.
+- If upload does not work, try checking the network configuration or test on another network. The app uses https (port 443) to call Flickr.
+  
 ## Tests
 
 npm test  
@@ -64,6 +69,9 @@ BSD-2-Clause
 
 ## Release History
 
+* 0.1.5 Updated README with notes
+* 0.1.4 Updated README with notes
+* 0.1.3 Bugfix: did not export all necessary functions
 * 0.1.2 Updated README with more explanations
 * 0.1.1 Fixed dependencies
 * 0.1.0 Initial release
