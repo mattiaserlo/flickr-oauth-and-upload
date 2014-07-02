@@ -69,6 +69,7 @@ BSD-2-Clause
 
 ## Release History
 
+* 0.1.6 Updated README with notes
 * 0.1.5 Updated README with notes
 * 0.1.4 Updated README with notes
 * 0.1.3 Bugfix: did not export all necessary functions
