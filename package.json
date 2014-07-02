@@ -1,6 +1,6 @@
 {
   "name": "flickr-oauth-and-upload",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Library that handles Flickr OAuth1.0 flow and photo upload",
   "main": "index.js",
   "scripts": {
@@ -20,6 +20,10 @@
   "license": "BSD-2-Clause",
   "bugs": {
     "url": "https://github.com/mattiaserlo/flickr-oauth-and-upload/issues"
+  },
+  "dependencies": {
+    "form-data": "0.1.x",
+    "oauth-percent-encode": "0.1.x"
   },
   "devDependencies": {
     "mocha": "~1.20.1",

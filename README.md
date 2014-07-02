@@ -62,5 +62,6 @@ In future releases I will add more functionality like downloading photos etc.
 
 ## Release History
 
+* 0.1.1 Fixed dependencies
 * 0.1.0 Initial release
 
