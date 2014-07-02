@@ -78,7 +78,8 @@ var createSortedKeyValuePairString = function ( preString, args, keyValueSeparat
 // file system of the computer this program is running on), and uploads that photo
 // to Flickr.
 // When the function has uploaded the photo, the callback you provided will be
-// called, with photoId as argument. photoId is the Flickr photo id that uniquely
+// called, with two arguments, error and photoId. For a successful upload, error
+// will be null and photoId will be the Flickr photo id that uniquely
 // identifies your new photo.
 // Note that to call this function, the user needs to have authorized your Flickr
 // app, and you need to have access to oauth_token and oauth_token_secret.
@@ -99,7 +100,7 @@ var createSortedKeyValuePairString = function ( preString, args, keyValueSeparat
 //   hidden (optional) Set to 1 to keep the photo in global search results, 2 to
 //      hide from public searches.
 var uploadPhoto = function (filename, flickrConsumerKey, flickrConsumerKeySecret,
-                            oauthToken, oauthTokenSecret, optionalArgs) {        
+                            oauthToken, oauthTokenSecret, optionalArgs, callback) {        
   var httpMethod = 'POST';
   var url = 'https://up.flickr.com/services/upload/';
 
@@ -161,14 +162,19 @@ var uploadPhoto = function (filename, flickrConsumerKey, flickrConsumerKeySecret
       console.log('upload statusCode: ', res.statusCode);
       res.on('data', function(d) {
         console.log('upload result: ' + d);
-        /* till exempel
+        /* for example
         upload statusCode:  200
         upload result: <?xml version="1.0" encoding="utf-8" ?>
         <rsp stat="ok">
         <photoid>14369421238</photoid>
         </rsp>
         */
-
+        var photoId = findStringBetween(d, '<photoid>', '</photoid>');
+        if (photoId) {
+          callback(null, photoId);
+        } else {
+          callback(new Error('Upload error: ' + d));
+        }
         // TODO: las ut photoid och anropa callback med det som parameter
         // sa att anvandaren vet vilket id fotot han laddat upp fick 
       });
@@ -177,9 +183,8 @@ var uploadPhoto = function (filename, flickrConsumerKey, flickrConsumerKeySecret
     req.end();
 
     req.on('error', function(e) {
-      console.log('upload error!');
       console.error(e);
-      // TODO: anropa callbacken med error
+      callback(new Error('Upload error: ' + e));
     });
   });
 };

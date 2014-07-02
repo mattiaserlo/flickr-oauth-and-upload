@@ -27,7 +27,8 @@ If you have not already gone through the authorization steps above, and/or you d
   
 Example of calling getRequestToken:  
   
-    flickrApi.getRequestToken('YourFlickrConsumerKey', 'YourFlickrConsumerKeySecret',
+    flickrApi.getRequestToken('YourFlickrConsumerKey',
+                              'YourFlickrConsumerKeySecret',
                               'write', 'http://www.YourRedirectUrl.com/index.html',
                               function (oAuthToken, oAuthTokenSecret, url) {
                                 // Ask the user to visit the url to authorize your Flickr app
@@ -38,10 +39,13 @@ Next, you need to call useRequestTokenToGetAccessToken, passing in the oauthToke
 Example of calling useRequestTokenToGetAccessToken:
 
     // Here you need to pass in the oAuthToken, oAuthTokenSecret and oAuthVerifier that you collected from the redirect url above.  
-    flickrApi.useRequestTokenToGetAccessToken('YourFlickrConsumerKey', 'YourFlickrConsumerKeySecret',
-                                              'ThisUsersOauthToken', 'ThisUsersOauthTokenSecret',
+    flickrApi.useRequestTokenToGetAccessToken('YourFlickrConsumerKey',
+                                              'YourFlickrConsumerKeySecret',
+                                              'ThisUsersOauthToken',
+                                              'ThisUsersOauthTokenSecret',
                                               'ThisUsersOauthVerifier',
-                                              function(authorizedOauthToken, authorizedAauthTokenSecret) {
+                                              function(authorizedOauthToken,
+                                                       authorizedOauthTokenSecret) {
                                                 // Remember these strings
                                               });
   
@@ -49,14 +53,20 @@ Example of calling uploadPhoto:
 
     // Here you need to pass in the authorized oauthtoken and oauthtokensecret you received in the callback after calling useRequestTokenToGetAccessToken above  
     flickrApi.uploadPhoto('./myimage.jpg',
-                          'YourFlickConsumerKey...', 'YourFlickConsumerKeySecret',
-                          'authorizedOauthToken', 'authorizedAauthTokenSecret',
-                          {title: 'Title of the photo'});
+                          'YourFlickConsumerKey...',
+                          'YourFlickConsumerKeySecret',
+                          'authorizedOauthToken',
+                          'authorizedAauthTokenSecret',
+                          {title: 'Title of the photo'},
+                          function (err, photoId) {
+                            if (!err) {
+                              console.log('uploaded photoId: ' + photoId);
+                            }
+                          });
   
 ## Notes / TODO
 
-- Currently uploadPhoto does not take any callback. It should take a callback so the caller can know whether the photo could be uploaded or not, i.e. the resulting photo id or an error code.
-- If upload does not work, try checking the network configuration or test on another network. The app uses https (port 443) to call Flickr.
+- If upload does not work, try checking the network configuration (ports, firewall, proxy) or test on another network. The app uses https (port 443) to call Flickr.
   
 ## Tests
 
@@ -69,6 +79,7 @@ BSD-2-Clause
 
 ## Release History
 
+* 0.2.0 Added callback to uploadPhoto function
 * 0.1.6 Updated README with notes
 * 0.1.5 Updated README with notes
 * 0.1.4 Updated README with notes
