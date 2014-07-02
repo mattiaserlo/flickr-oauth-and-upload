@@ -169,7 +169,7 @@ var uploadPhoto = function (filename, flickrConsumerKey, flickrConsumerKeySecret
         <photoid>14369421238</photoid>
         </rsp>
         */
-        var photoId = findStringBetween(d, '<photoid>', '</photoid>');
+        var photoId = findStringBetween(String(d), '<photoid>', '</photoid>');
         if (photoId) {
           callback(null, photoId);
         } else {

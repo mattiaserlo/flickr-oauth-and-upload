@@ -79,6 +79,7 @@ BSD-2-Clause
 
 ## Release History
 
+* 0.2.1 Bugfix: type error when handling uploadPhoto response
 * 0.2.0 Added callback to uploadPhoto function
 * 0.1.6 Updated README with notes
 * 0.1.5 Updated README with notes
