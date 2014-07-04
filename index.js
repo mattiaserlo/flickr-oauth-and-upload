@@ -101,9 +101,6 @@ var createSortedKeyValuePairString = function ( preString, args, keyValueSeparat
 //      hide from public searches.
 var uploadPhoto = function (filename, flickrConsumerKey, flickrConsumerKeySecret,
                             oauthToken, oauthTokenSecret, optionalArgs, callback) {        
-  var httpMethod = 'POST';
-  var url = 'https://up.flickr.com/services/upload/';
-
   var parameters = {
     oauth_nonce : generateNonce(),
     oauth_timestamp : generateTimestamp(),
@@ -175,8 +172,6 @@ var uploadPhoto = function (filename, flickrConsumerKey, flickrConsumerKeySecret
         } else {
           callback(new Error('Upload error: ' + d));
         }
-        // TODO: las ut photoid och anropa callback med det som parameter
-        // sa att anvandaren vet vilket id fotot han laddat upp fick 
       });
     });
     form.pipe(req);
@@ -186,6 +181,68 @@ var uploadPhoto = function (filename, flickrConsumerKey, flickrConsumerKeySecret
       console.error(e);
       callback(new Error('Upload error: ' + e));
     });
+  });
+};
+
+var getPhotos = function ( flickrConsumerKey, flickrConsumerKeySecret,
+                            userId, oauthToken, oauthTokenSecret, callback) {
+  var parameters = {
+    oauth_nonce: generateNonce(),
+    format: 'json',
+    oauth_consumer_key : flickrConsumerKey,
+    oauth_timestamp : generateTimestamp(),
+    oauth_signature_method : 'HMAC-SHA1',
+    oauth_version : '1.0',
+    oauth_token : oauthToken,
+    method: 'flickr.people.getPhotos',
+    user_id: userId
+  };
+
+  // TODO: clean up, probably don't need two separate objects here, one should do.
+  // And clean up the signing. Move the signing to after the sorting, just
+  // append it last to the modified string.
+  // TODO: make it possible to pass optional parameters, see
+  // https://www.flickr.com/services/api/flickr.people.getPhotos.html
+
+  var args = {format: parameters.format,
+              method: parameters.method,
+              oauth_consumer_key: parameters.oauth_consumer_key,
+              oauth_nonce: parameters.oauth_nonce,
+              oauth_signature_method: parameters.oauth_signature_method,
+              oauth_timestamp: parameters.oauth_timestamp,
+              oauth_token: parameters.oauth_token,
+              oauth_version: parameters.oauth_version,
+              user_id: parameters.user_id};
+
+  var cryptoMessage = createSortedKeyValuePairString('POST&https%3A%2F%2F' + 
+                                    'api.flickr.com%2Fservices%2Frest',
+                                    args, '%3D', '%26', percentEncodeTwice);
+
+  var cryptoKey = flickrConsumerKeySecret + '&' + oauthTokenSecret;
+  var signature = createSignature(cryptoMessage, cryptoKey);
+  var path = '/services/rest';
+  args['oauth_signature'] = signature;
+  var parameterString = createSortedKeyValuePairString('', args, '=', '&',
+                                                        percentEncode);
+
+  var httpsOptions = {
+    hostname: 'api.flickr.com',  
+    port: 443,
+    path: path + '?' + parameterString,
+    method: 'POST'
+  };
+
+  var req = https.request(httpsOptions, function(res) {
+    console.log('https request statusCode: ', res.statusCode);
+    res.on('data', function(d) {
+      callback(null, d);
+    });
+  });
+  req.end();
+
+  req.on('error', function(e) {
+    console.error(e);
+    callback(new Error('Error: ' + e));
   });
 };
 
@@ -210,8 +267,6 @@ var useRequestTokenToGetAccessToken = function (flickrConsumerKey,
   var oauthTokenSecret = String(oauthTokenSecret);
   var oauthVerifier = String(oauthVerifier);
 
-  var httpMethod = 'GET';
-  var url = 'https://www.flickr.com/services/oauth/access_token';   
   var parameters = {
     oauth_nonce : generateNonce(),
     oauth_timestamp : generateTimestamp(),
@@ -307,7 +362,6 @@ var useRequestTokenToGetAccessToken = function (flickrConsumerKey,
 // exchanging the request token to an authorized access token.
 var getRequestToken = function (flickrConsumerKey, flickrConsumerKeySecret,
                                 permissions, redirectUrl, callback) {
-  var httpMethod = 'GET';
   var url = 'https://www.flickr.com/services/oauth/request_token';
   var parameters = {
     oauth_nonce : generateNonce(),
@@ -373,3 +427,4 @@ var getRequestToken = function (flickrConsumerKey, flickrConsumerKeySecret,
 exports.getRequestToken = getRequestToken;
 exports.useRequestTokenToGetAccessToken = useRequestTokenToGetAccessToken;
 exports.uploadPhoto = uploadPhoto;
+exports.getPhotos = getPhotos;

@@ -56,7 +56,7 @@ Example of calling uploadPhoto:
                           'YourFlickConsumerKey...',
                           'YourFlickConsumerKeySecret',
                           'authorizedOauthToken',
-                          'authorizedAauthTokenSecret',
+                          'authorizedOauthTokenSecret',
                           {title: 'Title of the photo'},
                           function (err, photoId) {
                             if (!err) {
@@ -79,6 +79,7 @@ BSD-2-Clause
 
 ## Release History
 
+* 0.3.0 Added basic support for getPhotos
 * 0.2.1 Bugfix: type error when handling uploadPhoto response
 * 0.2.0 Added callback to uploadPhoto function
 * 0.1.6 Updated README with notes
