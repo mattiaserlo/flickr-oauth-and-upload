@@ -126,9 +126,6 @@ var uploadPhoto = function (filename, flickrConsumerKey, flickrConsumerKeySecret
 
   parameterString += '&oauth_signature=' + signature;
 
-  console.log('parameterString:');
-  console.log(parameterString);
-
   var form = new FormData();
 
   for (var prop in parameters) {
@@ -153,7 +150,7 @@ var uploadPhoto = function (filename, flickrConsumerKey, flickrConsumerKeySecret
     };
 
     var req = https.request(httpsOptions, function(res) {
-      console.log('upload statusCode: ', res.statusCode);
+      // console.log('upload statusCode: ', res.statusCode);
       res.on('data', function(d) {
         console.log('upload result: ' + d);
         /* for example
@@ -164,7 +161,7 @@ var uploadPhoto = function (filename, flickrConsumerKey, flickrConsumerKeySecret
         </rsp>
         */
         var photoId = findStringBetween(String(d), '<photoid>', '</photoid>');
-        console.log('found photo Id: ' + photoId);
+        // console.log('found photo Id: ' + photoId);
         if (callback && (callback instanceof Function)) {
           if (photoId) {
             // console.log('calling callback with photoId ' + photoId);
@@ -235,7 +232,7 @@ var getPhotos = function (  userId, flickrConsumerKey, flickrConsumerKeySecret,
   };
 
   var req = https.request(httpsOptions, function(res) {
-    console.log('https request statusCode: ', res.statusCode);
+    // console.log('https request statusCode: ', res.statusCode);
     res.on('data', function(d) {
       if (callback && (callback instanceof Function)) {
         callback(null, d);
@@ -388,7 +385,7 @@ var getRequestToken = function (flickrConsumerKey, flickrConsumerKeySecret,
   };
 
   var req = https.request(httpsOptions, function(res) {
-    console.log('getRequestToken statusCode: ', res.statusCode);
+    // console.log('getRequestToken statusCode: ', res.statusCode);
 
     res.on('data', function(d) {
       // console.log('getRequestToken data: ' + d);

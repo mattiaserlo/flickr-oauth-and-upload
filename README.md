@@ -86,6 +86,7 @@ BSD-2-Clause
 
 ## Release History
 
+* 0.4.1 Removed unnecessary logs
 * 0.4.0 Tidied up some code, and updated api parameter order
 * 0.3.0 Added basic support for getPhotos
 * 0.2.1 Bugfix: type error when handling uploadPhoto response
