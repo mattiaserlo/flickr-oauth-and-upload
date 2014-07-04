@@ -30,8 +30,13 @@ Example of calling getRequestToken:
     flickrApi.getRequestToken('YourFlickrConsumerKey',
                               'YourFlickrConsumerKeySecret',
                               'write', 'http://www.YourRedirectUrl.com/index.html',
-                              function (oAuthToken, oAuthTokenSecret, url) {
-                                // Ask the user to visit the url to authorize your Flickr app
+                              function (err, obj) {
+                                if (!err) {
+                                  // Remember obj.oauthToken,
+                                  // obj.oauthTokenSecret, obj.url
+                                  // Ask the user to visit the url to authorize
+                                  // your Flickr app
+                                }
                               });
   
 Next, you need to call useRequestTokenToGetAccessToken, passing in the oauthToken and oauthVerifier strings you retrieved from the steps described above. When the function has called Flickr and retrieved the authorized oauthToken and oauthSecret, your provided callback function will be called with parameters oauthToken and oauthSecret. After that, you can make authorized calls, using those credentials, to upload photos etc.
@@ -44,9 +49,12 @@ Example of calling useRequestTokenToGetAccessToken:
                                               'ThisUsersOauthToken',
                                               'ThisUsersOauthTokenSecret',
                                               'ThisUsersOauthVerifier',
-                                              function(authorizedOauthToken,
-                                                       authorizedOauthTokenSecret) {
-                                                // Remember these strings
+                                              function(err, obj) {
+                                                if (!err) {
+                                                  // Remember obj.oauthToken,
+                                                  // obj.oauthTokenSecret,
+                                                  // obj.userNsId, obj.userName
+                                                }
                                               });
   
 Example of calling uploadPhoto:  
@@ -57,12 +65,11 @@ Example of calling uploadPhoto:
                           'YourFlickConsumerKeySecret',
                           'authorizedOauthToken',
                           'authorizedOauthTokenSecret',
-                          {title: 'Title of the photo'},
                           function (err, photoId) {
                             if (!err) {
                               console.log('uploaded photoId: ' + photoId);
                             }
-                          });
+                          }, {title: 'Title of the photo'});
   
 ## Notes / TODO
 
@@ -79,6 +86,7 @@ BSD-2-Clause
 
 ## Release History
 
+* 0.4.0 Tidied up some code, and updated api parameter order
 * 0.3.0 Added basic support for getPhotos
 * 0.2.1 Bugfix: type error when handling uploadPhoto response
 * 0.2.0 Added callback to uploadPhoto function

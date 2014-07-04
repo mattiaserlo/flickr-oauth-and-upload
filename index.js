@@ -61,7 +61,7 @@ var createSortedKeyValuePairString = function ( preString, args, keyValueSeparat
   sortedKeys.sort();
 
   for (var i=0; i<sortedKeys.length; i++) {
-    if (convertFunc && sortedKeys[i] != 'oauth_signature') {
+    if (convertFunc) {
       pushString = convertFunc(args[sortedKeys[i]]);
     } else {
       pushString = args[sortedKeys[i]];
@@ -86,9 +86,8 @@ var createSortedKeyValuePairString = function ( preString, args, keyValueSeparat
 // If the user has not already authorized your app, and/or you do not already have
 // access to oauth_token and oauth_secret, you need to first get a request token.
 // See documentation for getRequestToken further down below.
-// optionalArguments: this is an optional JS object containing any of the following
+// optionalArgs: this is an optional JS object containing any of the following
 // key/value pairs (specified by Flickr):
-//   photo The file to upload.
 //   title (optional) The title of the photo.
 //   description (optional) A description of the photo. May contain some limited
 //      HTML.
@@ -100,7 +99,7 @@ var createSortedKeyValuePairString = function ( preString, args, keyValueSeparat
 //   hidden (optional) Set to 1 to keep the photo in global search results, 2 to
 //      hide from public searches.
 var uploadPhoto = function (filename, flickrConsumerKey, flickrConsumerKeySecret,
-                            oauthToken, oauthTokenSecret, optionalArgs, callback) {        
+                            oauthToken, oauthTokenSecret, callback, optionalArgs) {        
   var parameters = {
     oauth_nonce : generateNonce(),
     oauth_timestamp : generateTimestamp(),
@@ -110,39 +109,37 @@ var uploadPhoto = function (filename, flickrConsumerKey, flickrConsumerKeySecret
     oauth_token : oauthToken
   };
 
-  var args = {oauth_consumer_key: parameters.oauth_consumer_key,
-              oauth_nonce: parameters.oauth_nonce,
-              oauth_signature_method: parameters.oauth_signature_method,
-              oauth_timestamp: parameters.oauth_timestamp,
-              oauth_token: parameters.oauth_token,
-              oauth_version: parameters.oauth_version};
-
   if (optionalArgs) {
     for (prop in optionalArgs) {
-      args[prop] = optionalArgs[prop];
+      parameters[prop] = optionalArgs[prop];
     }
   }
 
   var cryptoMessage = createSortedKeyValuePairString('POST&https%3A%2F%2F' + 
                                     'up.flickr.com%2Fservices%2Fupload%2F&',
-                                    args, '%3D', '%26', percentEncodeTwice);
+                                    parameters, '%3D', '%26', percentEncodeTwice);
 
   var cryptoKey = flickrConsumerKeySecret + '&' + oauthTokenSecret;
   var signature = createSignature(cryptoMessage, cryptoKey);
-  var path = '/services/upload/';
-  args['oauth_signature'] = signature;
-  var parameterString = createSortedKeyValuePairString('', args, '=', '&',
+  var parameterString = createSortedKeyValuePairString('', parameters, '=', '&',
                                                         percentEncode);
 
+  parameterString += '&oauth_signature=' + signature;
+
+  console.log('parameterString:');
+  console.log(parameterString);
+
   var form = new FormData();
-  
-  for (var prop in args) {
-    form.append(prop, args[prop]);
+
+  for (var prop in parameters) {
+    form.append(prop, parameters[prop]);
   }
   form.append('photo', fs.createReadStream(filename));
-  
+
   form.getLength(function (err, length) {
     if (err) return;
+
+    var path = '/services/upload/';
 
     var httpsOptions = {
       hostname: 'up.flickr.com',
@@ -167,10 +164,14 @@ var uploadPhoto = function (filename, flickrConsumerKey, flickrConsumerKeySecret
         </rsp>
         */
         var photoId = findStringBetween(String(d), '<photoid>', '</photoid>');
-        if (photoId) {
-          callback(null, photoId);
-        } else {
-          callback(new Error('Upload error: ' + d));
+        console.log('found photo Id: ' + photoId);
+        if (callback && (callback instanceof Function)) {
+          if (photoId) {
+            // console.log('calling callback with photoId ' + photoId);
+            callback(null, photoId);
+          } else {
+            callback(new Error('Upload error: ' + d));
+          }
         }
       });
     });
@@ -179,13 +180,22 @@ var uploadPhoto = function (filename, flickrConsumerKey, flickrConsumerKeySecret
 
     req.on('error', function(e) {
       console.error(e);
-      callback(new Error('Upload error: ' + e));
+      if (callback && (callback instanceof Function)) {
+        callback(new Error('Upload error: ' + e));
+      }
     });
   });
 };
 
-var getPhotos = function ( flickrConsumerKey, flickrConsumerKeySecret,
-                            userId, oauthToken, oauthTokenSecret, callback) {
+// This function calls the 'getPhotos' Flickr api to get a number of photos
+// from a particular user.
+// optionalArgs is an optional JS object that can contain any of the optional
+// arguments listed by Flickr.
+// For more info about the getPhotos Flickr api, see:
+// https://www.flickr.com/services/api/flickr.people.getPhotos.html
+var getPhotos = function (  userId, flickrConsumerKey, flickrConsumerKeySecret,
+                            oauthToken, oauthTokenSecret,
+                            callback, optionalArgs) {
   var parameters = {
     oauth_nonce: generateNonce(),
     format: 'json',
@@ -198,33 +208,25 @@ var getPhotos = function ( flickrConsumerKey, flickrConsumerKeySecret,
     user_id: userId
   };
 
-  // TODO: clean up, probably don't need two separate objects here, one should do.
-  // And clean up the signing. Move the signing to after the sorting, just
-  // append it last to the modified string.
-  // TODO: make it possible to pass optional parameters, see
-  // https://www.flickr.com/services/api/flickr.people.getPhotos.html
-
-  var args = {format: parameters.format,
-              method: parameters.method,
-              oauth_consumer_key: parameters.oauth_consumer_key,
-              oauth_nonce: parameters.oauth_nonce,
-              oauth_signature_method: parameters.oauth_signature_method,
-              oauth_timestamp: parameters.oauth_timestamp,
-              oauth_token: parameters.oauth_token,
-              oauth_version: parameters.oauth_version,
-              user_id: parameters.user_id};
+  if (optionalArgs) {
+    for (prop in optionalArgs) {
+      parameters[prop] = optionalArgs[prop];
+    }
+  }
 
   var cryptoMessage = createSortedKeyValuePairString('POST&https%3A%2F%2F' + 
                                     'api.flickr.com%2Fservices%2Frest',
-                                    args, '%3D', '%26', percentEncodeTwice);
+                                    parameters, '%3D', '%26', percentEncodeTwice);
 
   var cryptoKey = flickrConsumerKeySecret + '&' + oauthTokenSecret;
   var signature = createSignature(cryptoMessage, cryptoKey);
-  var path = '/services/rest';
-  args['oauth_signature'] = signature;
-  var parameterString = createSortedKeyValuePairString('', args, '=', '&',
+  var parameterString = createSortedKeyValuePairString('', parameters, '=', '&',
                                                         percentEncode);
 
+  parameterString += '&oauth_signature=' + signature;
+
+  var path = '/services/rest';
+  
   var httpsOptions = {
     hostname: 'api.flickr.com',  
     port: 443,
@@ -235,14 +237,18 @@ var getPhotos = function ( flickrConsumerKey, flickrConsumerKeySecret,
   var req = https.request(httpsOptions, function(res) {
     console.log('https request statusCode: ', res.statusCode);
     res.on('data', function(d) {
-      callback(null, d);
+      if (callback && (callback instanceof Function)) {
+        callback(null, d);
+      }
     });
   });
   req.end();
 
   req.on('error', function(e) {
     console.error(e);
-    callback(new Error('Error: ' + e));
+    if (callback && (callback instanceof Function)) {
+      callback(new Error('Error: ' + e));
+    }
   });
 };
 
@@ -277,31 +283,19 @@ var useRequestTokenToGetAccessToken = function (flickrConsumerKey,
     oauth_token : oauthToken
   };
 
-  var cryptoMessage = 'GET&https%3A%2F%2Fwww.flickr.com%2Fservices%2F'+
-    'oauth%2Faccess_token&' +
-    'oauth_consumer_key' + '%3D' + percentEncode(parameters.oauth_consumer_key) + '%26' +
-    'oauth_nonce' + '%3D' + percentEncode(parameters.oauth_nonce) + '%26' +
-    'oauth_signature_method' + '%3D' + percentEncode(parameters.oauth_signature_method) + '%26' +
-    'oauth_timestamp'  + '%3D' + percentEncode(parameters.oauth_timestamp) + '%26' +
-    'oauth_token'  + '%3D' + percentEncode(parameters.oauth_token) + '%26' +
-    'oauth_verifier'  + '%3D' + percentEncode(parameters.oauth_verifier) + '%26' +
-    'oauth_version' + '%3D' + percentEncode(parameters.oauth_version);
+  var cryptoMessage = createSortedKeyValuePairString('GET&https%3A%2F%2F' + 
+                                    'www.flickr.com%2Fservices%2Foauth%2Faccess_token&',
+                                    parameters, '%3D', '%26', percentEncodeTwice);
 
   var cryptoKey = flickrConsumerKeySecret + '&' + oauthTokenSecret;
-
   var signature = createSignature(cryptoMessage, cryptoKey);
 
+  var parameterString = createSortedKeyValuePairString('', parameters, '=', '&',
+                                                        percentEncode);
+
+  parameterString += '&oauth_signature=' + signature;
+
   var path = '/services/oauth/access_token';
-
-  var parameterString =   'oauth_nonce=' + parameters.oauth_nonce + '&' +
-    'oauth_timestamp=' + parameters.oauth_timestamp + '&' +
-    'oauth_verifier=' + parameters.oauth_verifier + '&' +
-    'oauth_consumer_key=' + parameters.oauth_consumer_key + '&' +
-    'oauth_signature_method=' + parameters.oauth_signature_method + '&' +
-    'oauth_version=' + parameters.oauth_version + '&' +
-    'oauth_token=' + parameters.oauth_token + '&' +
-    'oauth_signature=' + signature;
-
   var httpsOptions = {
     hostname: 'www.flickr.com',
     port: 443,
@@ -327,13 +321,12 @@ var useRequestTokenToGetAccessToken = function (flickrConsumerKey,
       userNsId: 73...
       userName: Mattias%20Erl%C3%B6
       */
-
-      // console.log('oauthToken: ' + oauthToken);
-      // console.log('oauthTokenSecret: ' + oauthTokenSecret);
-      // console.log('userNsId: ' + userNsid);
-      // console.log('userName: ' + userName);
-
-      callback(oauthToken, oauthTokenSecret);
+      if (callback && (callback instanceof Function)) {
+        callback(null, {oauthToken: oauthToken,
+                        oauthTokenSecret: oauthTokenSecret,
+                        userNsId: userNsId,
+                        userName: userName});
+      }
     });
   });
   req.end();
@@ -341,6 +334,9 @@ var useRequestTokenToGetAccessToken = function (flickrConsumerKey,
   req.on('error', function(e) {
     console.log('useRequestTokenToGetAccessToken error!');
     console.error(e);
+    if (callback && (callback instanceof Function)) {
+      callback(new Error('useRequestTokenToGetAccessToken error: ' + e));
+    }
   });
 };
 
@@ -362,36 +358,28 @@ var useRequestTokenToGetAccessToken = function (flickrConsumerKey,
 // exchanging the request token to an authorized access token.
 var getRequestToken = function (flickrConsumerKey, flickrConsumerKeySecret,
                                 permissions, redirectUrl, callback) {
-  var url = 'https://www.flickr.com/services/oauth/request_token';
   var parameters = {
     oauth_nonce : generateNonce(),
     oauth_timestamp : generateTimestamp(),
     oauth_consumer_key : flickrConsumerKey,
     oauth_signature_method : 'HMAC-SHA1',
     oauth_version : '1.0',
-    oauth_callback : percentEncode(redirectUrl)
+    oauth_callback : redirectUrl // eller percentEncode(redirectUrl)
   };
 
-  var cryptoMessage = 'GET&https%3A%2F%2Fwww.flickr.com%2Fservices%2F' + 
-    'oauth%2Frequest_token&' +
-    'oauth_callback' + '%3D' + percentEncode(parameters.oauth_callback) + '%26' +
-    'oauth_consumer_key' + '%3D' + percentEncode(parameters.oauth_consumer_key) + '%26' +
-    'oauth_nonce' + '%3D' + percentEncode(parameters.oauth_nonce) + '%26' +
-    'oauth_signature_method' + '%3D' + percentEncode(parameters.oauth_signature_method) + '%26' +
-    'oauth_timestamp'  + '%3D' + percentEncode(parameters.oauth_timestamp) + '%26' +
-    'oauth_version' + '%3D' + percentEncode(parameters.oauth_version);
+  var cryptoMessage = createSortedKeyValuePairString('GET&https%3A%2F%2F' + 
+                                    'www.flickr.com%2Fservices%2Foauth%2Frequest_token&',
+                                    parameters, '%3D', '%26', percentEncodeTwice);
 
   var cryptoKey = flickrConsumerKeySecret + '&';
   var signature = createSignature(cryptoMessage, cryptoKey);
-  var path = '/services/oauth/request_token';
-  var parameterString = 'oauth_nonce=' + parameters.oauth_nonce + '&' +
-                        'oauth_timestamp=' + parameters.oauth_timestamp + '&' +
-                        'oauth_consumer_key=' + parameters.oauth_consumer_key + '&' +
-                        'oauth_signature_method=' + parameters.oauth_signature_method + '&' +
-                        'oauth_version=' + parameters.oauth_version + '&' +
-                        'oauth_signature=' + signature + '&' +
-                        'oauth_callback=' + parameters.oauth_callback;
+  
+  var parameterString = createSortedKeyValuePairString('', parameters, '=', '&',
+                                                        percentEncode);
 
+  parameterString += '&oauth_signature=' + signature;
+
+  var path = '/services/oauth/request_token';
   var httpsOptions = {
     hostname: 'www.flickr.com',
     port: 443,
@@ -403,8 +391,7 @@ var getRequestToken = function (flickrConsumerKey, flickrConsumerKeySecret,
     console.log('getRequestToken statusCode: ', res.statusCode);
 
     res.on('data', function(d) {
-      console.log('getRequestToken data: ' + d);
-
+      // console.log('getRequestToken data: ' + d);
       var str = String(d);
       var oauthToken = findStringBetween(str, 'oauth_token=', '&');
       var oauthTokenSecret = findStringBetween(str, 'oauth_token_secret=', '&');
@@ -412,7 +399,11 @@ var getRequestToken = function (flickrConsumerKey, flickrConsumerKeySecret,
       var url = 'https://www.flickr.com/services/oauth/authorize?oauth_token=' +
           oauthToken + '&perms=' + permissions;
 
-      callback(oauthToken, oauthTokenSecret, url);
+      if (callback && (callback instanceof Function)) {
+        callback(null, {oauthToken: oauthToken, 
+                        oauthTokenSecret: oauthTokenSecret,
+                        url: url});
+      }
     });
   });
 
@@ -421,6 +412,9 @@ var getRequestToken = function (flickrConsumerKey, flickrConsumerKeySecret,
   req.on('error', function(e) {
     console.log('getRequestToken error!');
     console.error(e);
+    if (callback && (callback instanceof Function)) {
+      callback(new Error('getRequestToken error: ' + e));
+    }
   });
 };
 
