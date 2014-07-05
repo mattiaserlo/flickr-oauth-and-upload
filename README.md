@@ -40,8 +40,8 @@ Example of calling getRequestToken:
 Next, you need to call useRequestTokenToGetAccessToken, passing in the oauthToken and oauthVerifier strings you retrieved from the steps described above. When the function has called Flickr and retrieved the authorized oauthToken and oauthSecret, your provided callback function will be called with parameters oauthToken and oauthSecret. After that, you can make authorized calls, using those credentials, to upload photos etc.
   
 Example of calling useRequestTokenToGetAccessToken:
-
-    Here you need to pass in the oAuthToken, oAuthTokenSecret and oAuthVerifier that you collected from the redirect url above.  
+  
+Here you need to pass in the oAuthToken, oAuthTokenSecret and oAuthVerifier that you collected from the redirect url above.  
   
     flickrApi.useRequestTokenToGetAccessToken('YourFlickrConsumerKey',
                                               'YourFlickrConsumerKeySecret',
@@ -58,10 +58,10 @@ Example of calling useRequestTokenToGetAccessToken:
   
 Example of calling uploadPhoto:  
 
-  Here you need to pass in the authorized oauthtoken and oauthtokensecret, which you either received in the callback after calling useRequestTokenToGetAccessToken above, or have stored from before  
+Here you need to pass in the authorized oauthtoken and oauthtokensecret, which you either received in the callback after calling useRequestTokenToGetAccessToken above, or have stored from before.  
   
-  optionalArgs: this is an optional JS object containing any of the key/value pair arguments used by Flickr as described on https://www.flickr.com/services/api/upload.api.html  
-  Note that you do not have to pass in any photo reference in the optionalArgs object.
+The last argument in this function is an optional arguments object containing any of the key/value pair arguments used by Flickr as described on https://www.flickr.com/services/api/upload.api.html  
+Note that you do not have to pass in any photo reference in the optional arguments object.
   
     flickrApi.uploadPhoto('./myimage.jpg',
                           'YourFlickConsumerKey',
@@ -73,15 +73,15 @@ Example of calling uploadPhoto:
                               console.log('uploaded photoId: ' + photoId);
                             }
                           }, {title: 'Title of the photo'});
-
-Example of calling any Flickr api method:
   
-  This is a generic function for calling any of the API methods (except photo upload) listed on Flickr's page, https://www.flickr.com/services/api/  
-  For photo upload, use the specific api photoUpload below.  
+Example of calling callApiMethod, to call any Flickr api method:
+  
+This is a generic function for calling any of the API methods (except photo upload) listed on Flickr's page, https://www.flickr.com/services/api/  
+For photo upload, use the specific api photoUpload instead.  
+  
+The final argument is an arguments object that can contain any method arguments you wish to pass to the Flickr method. Note that you do not have to pass in any user or app credentials, or any format type.  
  
-  args should be a JavaScript object containing any method arguments you wish to pass to the Flickr method. You do not have to pass in any user or app credentials, or any format type.  
- 
-  When the function has finished, the callback you provided will be called, with two arguments, error and data. For a successful call, error will be null and data will be a JavaScript object representing the response from Flickr. You do not have to set the format type by yourself.  
+When the function has finished, the callback you provided will be called, with two arguments, error and data. For a successful call, error will be null and data will be a JavaScript object representing the response from Flickr. You do not have to set the format type by yourself.  
   
     flickrApi.callApiMethod('flickr.cameras.getBrandModels',
                             'YourFlickConsumerKey',
@@ -111,6 +111,7 @@ BSD-2-Clause
 
 ## Release History
 
+* 0.5.1 Improved documentation
 * 0.5.0 Added callApiMethod function and bugfixed response format from getPhotos
 * 0.4.1 Removed unnecessary logs
 * 0.4.0 Tidied up some code, and updated api parameter order
