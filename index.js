@@ -74,32 +74,119 @@ var createSortedKeyValuePairString = function ( preString, args, keyValueSeparat
   return keyValuePairString;
 };
 
-// This function takes a filename (it should be the full path to a photo on the
-// file system of the computer this program is running on), and uploads that photo
-// to Flickr.
-// When the function has uploaded the photo, the callback you provided will be
-// called, with two arguments, error and photoId. For a successful upload, error
-// will be null and photoId will be the Flickr photo id that uniquely
-// identifies your new photo.
-// Note that to call this function, the user needs to have authorized your Flickr
-// app, and you need to have access to oauth_token and oauth_token_secret.
-// If the user has not already authorized your app, and/or you do not already have
-// access to oauth_token and oauth_secret, you need to first get a request token.
-// See documentation for getRequestToken further down below.
-// optionalArgs: this is an optional JS object containing any of the following
-// key/value pairs (specified by Flickr):
-//   title (optional) The title of the photo.
-//   description (optional) A description of the photo. May contain some limited
-//      HTML.
-//   tags (optional) A space-seperated list of tags to apply to the photo.
-//   is_public, is_friend, is_family (optional) Set to 0 for no, 1 for yes.
-//      Specifies who can view the photo.
-//   safety_level (optional) Set to 1 for Safe, 2 for Moderate, or 3 for Restricted.
-//   content_type (optional) Set to 1 for Photo, 2 for Screenshot, or 3 for Other.
-//   hidden (optional) Set to 1 to keep the photo in global search results, 2 to
-//      hide from public searches.
+/**
+ * Generic function for calling any of the API methods (except photo upload)
+ * listed on Flickr's page, https://www.flickr.com/services/api/
+ * For photo upload, use the specific api photoUpload below.
+ *
+ * args should be a JavaScript object containing any method arguments you
+ * wish to pass to the Flickr method. You do not have to pass in any
+ * user or app credentials, or any format type.
+ *
+ * When the function has finished, the callback you provided will be called,
+ * with two arguments, error and data. For a successful call, error will be
+ * null and data will be a JavaScript object representing the response from
+ * Flickr. You do not have to set the format type by yourself.
+ */
+var callApiMethod = function (methodName,
+                              flickrConsumerKey, flickrConsumerKeySecret,
+                              oauthToken, oauthTokenSecret, callback, args) {
+
+  var parameters = {
+    oauth_nonce: generateNonce(),
+    format: 'json',
+    oauth_consumer_key : flickrConsumerKey,
+    oauth_timestamp : generateTimestamp(),
+    oauth_signature_method : 'HMAC-SHA1',
+    oauth_version : '1.0',
+    oauth_token : oauthToken,
+    method: methodName,
+    format: 'json',
+    nojsoncallback: '1'
+  };
+
+  if (args) {
+    for (prop in args) {
+      parameters[prop] = args[prop];
+    }
+  }
+
+  var cryptoMessage = createSortedKeyValuePairString('POST&https%3A%2F%2F' +
+                                    'api.flickr.com%2Fservices%2Frest',
+                                    parameters, '%3D', '%26', percentEncodeTwice);
+
+  var cryptoKey = flickrConsumerKeySecret + '&' + oauthTokenSecret;
+  var signature = createSignature(cryptoMessage, cryptoKey);
+  var parameterString = createSortedKeyValuePairString('', parameters, '=', '&',
+                                                        percentEncode);
+
+  parameterString += '&oauth_signature=' + signature;
+
+  var path = '/services/rest';
+
+  var httpsOptions = {
+    hostname: 'api.flickr.com',
+    port: 443,
+    path: path + '?' + parameterString,
+    method: 'POST'
+  };
+
+  var data = '';
+  var req = https.request(httpsOptions, function(res) {
+    // console.log('https request statusCode: ', res.statusCode);
+    res.on('data', function(d) {
+      data += d;
+    });
+
+    res.on('end', function() {
+      if (callback && (callback instanceof Function)) {
+        data = JSON.parse(data);
+        callback(null, data);
+      }
+    });
+  });
+  req.end();
+
+  req.on('error', function(e) {
+    console.error(e);
+    if (callback && (callback instanceof Function)) {
+      callback(new Error('Error: ' + e));
+    }
+  });
+};
+
+/**
+ * This function takes a filename (it should be the full path to a photo on the
+ * file system of the computer this program is running on), and uploads that photo
+ * to Flickr.
+ *
+ * When the function has uploaded the photo, the callback you provided will be
+ * called, with two arguments, error and photoId. For a successful upload, error
+ * will be null and photoId will be the Flickr photo id that uniquely
+ * identifies your new photo.
+ *
+ * Note that to call this function, the user needs to have authorized your Flickr
+ * app, and you need to have access to oauth_token and oauth_token_secret.
+ * If the user has not already authorized your app, and/or you do not already have
+ * access to oauth_token and oauth_secret, you need to first get a request token.
+ * See documentation for getRequestToken further down below.
+ *
+ * optionalArgs: this is an optional JS object containing any of the following
+ * key/value pairs (specified by Flickr):
+ *   title (optional) The title of the photo.
+ *   description (optional) A description of the photo. May contain some limited
+ *      HTML.
+ *   tags (optional) A space-seperated list of tags to apply to the photo.
+ *   is_public, is_friend, is_family (optional) Set to 0 for no, 1 for yes.
+ *      Specifies who can view the photo.
+ *   safety_level (optional) Set to 1 for Safe, 2 for Moderate, or 3 for
+ *      Restricted.
+ *   content_type (optional) Set to 1 for Photo, 2 for Screenshot, or 3 for Other.
+ *   hidden (optional) Set to 1 to keep the photo in global search results, 2 to
+ *      hide from public searches.
+ */
 var uploadPhoto = function (filename, flickrConsumerKey, flickrConsumerKeySecret,
-                            oauthToken, oauthTokenSecret, callback, optionalArgs) {        
+                            oauthToken, oauthTokenSecret, callback, optionalArgs) {
   var parameters = {
     oauth_nonce : generateNonce(),
     oauth_timestamp : generateTimestamp(),
@@ -115,7 +202,7 @@ var uploadPhoto = function (filename, flickrConsumerKey, flickrConsumerKeySecret
     }
   }
 
-  var cryptoMessage = createSortedKeyValuePairString('POST&https%3A%2F%2F' + 
+  var cryptoMessage = createSortedKeyValuePairString('POST&https%3A%2F%2F' +
                                     'up.flickr.com%2Fservices%2Fupload%2F&',
                                     parameters, '%3D', '%26', percentEncodeTwice);
 
@@ -152,7 +239,7 @@ var uploadPhoto = function (filename, flickrConsumerKey, flickrConsumerKeySecret
     var req = https.request(httpsOptions, function(res) {
       // console.log('upload statusCode: ', res.statusCode);
       res.on('data', function(d) {
-        console.log('upload result: ' + d);
+        //console.log('upload result: ' + d);
         /* for example
         upload statusCode:  200
         upload result: <?xml version="1.0" encoding="utf-8" ?>
@@ -184,12 +271,21 @@ var uploadPhoto = function (filename, flickrConsumerKey, flickrConsumerKeySecret
   });
 };
 
-// This function calls the 'getPhotos' Flickr api to get a number of photos
-// from a particular user.
-// optionalArgs is an optional JS object that can contain any of the optional
-// arguments listed by Flickr.
-// For more info about the getPhotos Flickr api, see:
-// https://www.flickr.com/services/api/flickr.people.getPhotos.html
+/**
+ * This function calls the 'getPhotos' Flickr api to get a number of photos
+ * from a particular user. If userId is set to 'me' it will refer to the
+ * logged in user.
+ * 
+ * optionalArgs is an optional JS object that can contain any of the optional
+ * arguments listed by Flickr. You do not have to pass in any user or app
+ * credentials in this object.
+ *
+ * The response format will be json. You do not have to pass in any format
+ * parameter yourself.
+ *
+ * For more info about the getPhotos Flickr api, see:
+ * https://www.flickr.com/services/api/flickr.people.getPhotos.html
+ */
 var getPhotos = function (  userId, flickrConsumerKey, flickrConsumerKeySecret,
                             oauthToken, oauthTokenSecret,
                             callback, optionalArgs) {
@@ -202,7 +298,8 @@ var getPhotos = function (  userId, flickrConsumerKey, flickrConsumerKeySecret,
     oauth_version : '1.0',
     oauth_token : oauthToken,
     method: 'flickr.people.getPhotos',
-    user_id: userId
+    user_id: userId,
+    nojsoncallback: '1'
   };
 
   if (optionalArgs) {
@@ -211,7 +308,7 @@ var getPhotos = function (  userId, flickrConsumerKey, flickrConsumerKeySecret,
     }
   }
 
-  var cryptoMessage = createSortedKeyValuePairString('POST&https%3A%2F%2F' + 
+  var cryptoMessage = createSortedKeyValuePairString('POST&https%3A%2F%2F' +
                                     'api.flickr.com%2Fservices%2Frest',
                                     parameters, '%3D', '%26', percentEncodeTwice);
 
@@ -223,19 +320,25 @@ var getPhotos = function (  userId, flickrConsumerKey, flickrConsumerKeySecret,
   parameterString += '&oauth_signature=' + signature;
 
   var path = '/services/rest';
-  
+
   var httpsOptions = {
-    hostname: 'api.flickr.com',  
+    hostname: 'api.flickr.com',
     port: 443,
     path: path + '?' + parameterString,
     method: 'POST'
   };
 
+  var data = '';
   var req = https.request(httpsOptions, function(res) {
     // console.log('https request statusCode: ', res.statusCode);
     res.on('data', function(d) {
+      data += d;
+    });
+
+    res.on('end', function() {
       if (callback && (callback instanceof Function)) {
-        callback(null, d);
+        data = JSON.parse(data);
+        callback(null, data);
       }
     });
   });
@@ -249,19 +352,21 @@ var getPhotos = function (  userId, flickrConsumerKey, flickrConsumerKeySecret,
   });
 };
 
-// After the user has authorized your Flickr app, you need to convert the
-// request token to an access token, so that you can make api calls.
-// This function should be called after you have called getRequestToken, and
-// after you have asked the user to authorize your Flickr app. (See
-// getRequestToken documentation further down below.)
-// When the function has called Flickr and retrieved the oauth_token and
-// oauth_secret, your provided callback function will be called with
-// parameters oauth_token and oauth_secret.
-// After that, you can make authorized calls, using those credentials, to
-// upload photos etc.
-// Note that if you already have oauth_token and oauth_secret, and if the user
-// already has authorized your app, you don't need to call this function.
-// Instead you can call for example uploadPhoto directly.
+/**
+ * After the user has authorized your Flickr app, you need to convert the
+ * request token to an access token, so that you can make api calls.
+ * This function should be called after you have called getRequestToken, and
+ * after you have asked the user to authorize your Flickr app. (See
+ * getRequestToken documentation further down below.)
+ * When the function has called Flickr and retrieved the oauth_token and
+ * oauth_secret, your provided callback function will be called with
+ * parameters oauth_token and oauth_secret.
+ * After that, you can make authorized calls, using those credentials, to
+ * upload photos etc.
+ * Note that if you already have oauth_token and oauth_secret, and if the user
+ * already has authorized your app, you don't need to call this function.
+ * Instead you can call for example uploadPhoto directly.
+ */
 var useRequestTokenToGetAccessToken = function (flickrConsumerKey,
                                                 flickrConsumerKeySecret,
                                                 oauthToken, oauthTokenSecret,
@@ -337,22 +442,24 @@ var useRequestTokenToGetAccessToken = function (flickrConsumerKey,
   });
 };
 
-// To be able to make Flickr API calls, the user needs to authorize your
-// Flickr app, and you need oauth_token and oauth_token_secret.
-// If you do not already have those credentials, you can call this function.
-// permissions should be 'write' if you want to be able to upload.
-// This function will call Flickr to get a request token.
-// After the function has called Flickr, the callback function you provided
-// will be called, with the following parameters:
-//   oauthToken, oauthTokenSecret, url
-// The url is a Flickr url where the user will be asked to log in to Flickr
-// and review and approve the permissions you asked for here. If the user
-// accepts it, Flickr will redirect the user to the redirect url you provide
-// here. In the redirection, the redirect url will contain parameters for
-// oauth_token and oauth_verifier, for example: 
-// http://www.example.com/?oauth_token=72...&oauth_verifier=5d...
-// You need to catch those parameters because you need to provide them for
-// exchanging the request token to an authorized access token.
+/**
+ * To be able to make Flickr API calls, the user needs to authorize your
+ * Flickr app, and you need oauth_token and oauth_token_secret.
+ * If you do not already have those credentials, you can call this function.
+ * permissions should be 'write' if you want to be able to upload.
+ * This function will call Flickr to get a request token.
+ * After the function has called Flickr, the callback function you provided
+ * will be called, with the following parameters:
+ *   oauthToken, oauthTokenSecret, url
+ * The url is a Flickr url where the user will be asked to log in to Flickr
+ * and review and approve the permissions you asked for here. If the user
+ * accepts it, Flickr will redirect the user to the redirect url you provide
+ * here. In the redirection, the redirect url will contain parameters for
+ * oauth_token and oauth_verifier, for example:
+ * http://www.example.com/?oauth_token=72...&oauth_verifier=5d...
+ * You need to catch those parameters because you need to provide them for
+ * exchanging the request token to an authorized access token.
+ */
 var getRequestToken = function (flickrConsumerKey, flickrConsumerKeySecret,
                                 permissions, redirectUrl, callback) {
   var parameters = {
@@ -361,7 +468,7 @@ var getRequestToken = function (flickrConsumerKey, flickrConsumerKeySecret,
     oauth_consumer_key : flickrConsumerKey,
     oauth_signature_method : 'HMAC-SHA1',
     oauth_version : '1.0',
-    oauth_callback : redirectUrl // eller percentEncode(redirectUrl)
+    oauth_callback : redirectUrl
   };
 
   var cryptoMessage = createSortedKeyValuePairString('GET&https%3A%2F%2F' + 
@@ -419,3 +526,4 @@ exports.getRequestToken = getRequestToken;
 exports.useRequestTokenToGetAccessToken = useRequestTokenToGetAccessToken;
 exports.uploadPhoto = uploadPhoto;
 exports.getPhotos = getPhotos;
+exports.callApiMethod = callApiMethod;

@@ -1,12 +1,10 @@
 flickr-oauth-and-upload
 =======================
 
-Library that handles Flickr OAuth1.0 flow and photo upload.  
+Library that handles Flickr OAuth1.0 flow and photo upload, and calling any Flickr api method.  
   
 Managing the OAuth1.0 flow to authorize an application for uploading photos to Flickr can be complicated.  
-This library aims at solving this. It covers the authorization process described on Flickr's developer page [https://www.flickr.com/services/api/auth.oauth.html](https://www.flickr.com/services/api/auth.oauth.html) , and offers an api for uploading photos.  
-  
-In future releases I will add more functionality like downloading photos etc.
+This library aims at solving this. It covers the authorization process described on Flickr's developer page [https://www.flickr.com/services/api/auth.oauth.html](https://www.flickr.com/services/api/auth.oauth.html) , and offers an api for uploading photos, and a generic api for calling any Flickr api method. 
   
 ## Installation
 
@@ -43,7 +41,8 @@ Next, you need to call useRequestTokenToGetAccessToken, passing in the oauthToke
   
 Example of calling useRequestTokenToGetAccessToken:
 
-    // Here you need to pass in the oAuthToken, oAuthTokenSecret and oAuthVerifier that you collected from the redirect url above.  
+    Here you need to pass in the oAuthToken, oAuthTokenSecret and oAuthVerifier that you collected from the redirect url above.  
+  
     flickrApi.useRequestTokenToGetAccessToken('YourFlickrConsumerKey',
                                               'YourFlickrConsumerKeySecret',
                                               'ThisUsersOauthToken',
@@ -59,9 +58,13 @@ Example of calling useRequestTokenToGetAccessToken:
   
 Example of calling uploadPhoto:  
 
-    // Here you need to pass in the authorized oauthtoken and oauthtokensecret you received in the callback after calling useRequestTokenToGetAccessToken above  
+  Here you need to pass in the authorized oauthtoken and oauthtokensecret, which you either received in the callback after calling useRequestTokenToGetAccessToken above, or have stored from before  
+  
+  optionalArgs: this is an optional JS object containing any of the key/value pair arguments used by Flickr as described on https://www.flickr.com/services/api/upload.api.html  
+  Note that you do not have to pass in any photo reference in the optionalArgs object.
+  
     flickrApi.uploadPhoto('./myimage.jpg',
-                          'YourFlickConsumerKey...',
+                          'YourFlickConsumerKey',
                           'YourFlickConsumerKeySecret',
                           'authorizedOauthToken',
                           'authorizedOauthTokenSecret',
@@ -70,6 +73,28 @@ Example of calling uploadPhoto:
                               console.log('uploaded photoId: ' + photoId);
                             }
                           }, {title: 'Title of the photo'});
+
+Example of calling any Flickr api method:
+  
+  This is a generic function for calling any of the API methods (except photo upload) listed on Flickr's page, https://www.flickr.com/services/api/  
+  For photo upload, use the specific api photoUpload below.  
+ 
+  args should be a JavaScript object containing any method arguments you wish to pass to the Flickr method. You do not have to pass in any user or app credentials, or any format type.  
+ 
+  When the function has finished, the callback you provided will be called, with two arguments, error and data. For a successful call, error will be null and data will be a JavaScript object representing the response from Flickr. You do not have to set the format type by yourself.  
+  
+    flickrApi.callApiMethod('flickr.cameras.getBrandModels',
+                            'YourFlickConsumerKey',
+                            'YourFlickConsumerKeySecret',
+                            'authorizedOauthToken',
+                            'authorizedOauthTokenSecret',
+                            function (err, data) {
+                              if (!err) {
+                                // Iterate through the properties
+                                for (var prop in data) {
+                                  console.log('prop: ' + prop);
+                                }        
+                            }, {brand: 'Nikon'});
   
 ## Notes / TODO
 
@@ -86,6 +111,7 @@ BSD-2-Clause
 
 ## Release History
 
+* 0.5.0 Added callApiMethod function and bugfixed response format from getPhotos
 * 0.4.1 Removed unnecessary logs
 * 0.4.0 Tidied up some code, and updated api parameter order
 * 0.3.0 Added basic support for getPhotos
