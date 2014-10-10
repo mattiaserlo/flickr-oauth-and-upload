@@ -76,16 +76,16 @@ var createSortedKeyValuePairString = function ( preString, args, keyValueSeparat
 };
 
 /**
- * Generic function for calling any of the API methods listed on Flickr's page, 
+ * Generic function for signing any of the API methods listed on Flickr's page,
  * see https://www.flickr.com/services/api/
- * 
- * Note that this function does not cover photo upload. For photo upload, use
- * the specific photoUpload api below.
+ *
+ * This function can be used if you want to call the URL using a different
+ * machine/client or at a later time in the processing.
  *
  * Call the function with a JavaScript object as argument. The JavaScript
  * object should have the following properties:
  *   method: the Flickr method to call
-  *   flickrConsumerKey: your Flickr app key. You get this when you
+ *   flickrConsumerKey: your Flickr app key. You get this when you
  *     create your Flickr app on Flickr's developer pages.
  *     See https://www.flickr.com/services/
  *   flickrConsumerKeySecret: your Flickr app secret. You get this when
@@ -108,27 +108,16 @@ var createSortedKeyValuePairString = function ( preString, args, keyValueSeparat
  *
  * Example:
  *
- * var myCallback = function (err, data) {
- *   if (!err) {
- *     // Got result in data object
- *     // Iterate through the properties
- *     for (var prop in data) {
- *       console.log('prop: ' + prop);
- *     }        
- *   }
- * };
- * 
  * var args = {
  *   method: 'flickr.cameras.getBrandModels',
  *   flickrConsumerKey: '42...',
  *   flickrConsumerKeySecret: 'aa...',
  *   oauthToken: '99...',
  *   oauthTokenSecret: '1b...',
- *   callback: myCallback,
  *   optionalArgs : {brand: 'Nikon'}
  * };
- * 
- * flickrApi.callApiMethod(args);
+ *
+ * var signedMethod = flickrApi.signApiMethod(args);
  *
  *
  * Note that to call this function, the user needs to have authorized your Flickr
@@ -138,7 +127,7 @@ var createSortedKeyValuePairString = function ( preString, args, keyValueSeparat
  * access to authorized credentials, you need to first get a request token.
  * See documentation for getRequestToken further down below.
  */
-var callApiMethod = function (args) {
+var signApiMethod = function (args) {
   var method = args['method'];
   var flickrConsumerKey = args['flickrConsumerKey'];
   var flickrConsumerKeySecret = args['flickrConsumerKeySecret'];
@@ -186,6 +175,76 @@ var callApiMethod = function (args) {
     method: 'POST'
   };
 
+  return httpsOptions;
+};
+
+/**
+ * Generic function for calling any of the API methods listed on Flickr's page,
+ * see https://www.flickr.com/services/api/
+ *
+ * Note that this function does not cover photo upload. For photo upload, use
+ * the specific photoUpload api below.
+ *
+ * Call the function with a JavaScript object as argument. The JavaScript
+ * object should have the following properties:
+ *   method: the Flickr method to call
+  *   flickrConsumerKey: your Flickr app key. You get this when you
+ *     create your Flickr app on Flickr's developer pages.
+ *     See https://www.flickr.com/services/
+ *   flickrConsumerKeySecret: your Flickr app secret. You get this when
+ *     you create your Flickr app on Flickr's developer pages.
+ *     See https://www.flickr.com/services/
+ *   oauthToken: the authorized oauth token you have collected in previous
+ *     steps or stored from before
+ *   oauthTokenSecret: the authorized oauth token secret you have collected
+ *     in previous steps or stored from before
+ *   callback: see below
+ *   optionalArgs: an optional JavaScript object containing any additional
+ *     method arguments you wish to pass to the Flickr method. You do not have
+ *     to pass in any user or app credentials, or any format type in this object.
+ *
+ * When the function has finished, the callback you provided will be called,
+ * with two arguments, error and data. For a successful call, error will be
+ * null and data will be a JavaScript object representing the response from
+ * Flickr. You do not have to set the format type by yourself.
+ *
+ *
+ * Example:
+ *
+ * var myCallback = function (err, data) {
+ *   if (!err) {
+ *     // Got result in data object
+ *     // Iterate through the properties
+ *     for (var prop in data) {
+ *       console.log('prop: ' + prop);
+ *     }
+ *   }
+ * };
+ *
+ * var args = {
+ *   method: 'flickr.cameras.getBrandModels',
+ *   flickrConsumerKey: '42...',
+ *   flickrConsumerKeySecret: 'aa...',
+ *   oauthToken: '99...',
+ *   oauthTokenSecret: '1b...',
+ *   callback: myCallback,
+ *   optionalArgs : {brand: 'Nikon'}
+ * };
+ *
+ * flickrApi.callApiMethod(args);
+ *
+ *
+ * Note that to call this function, the user needs to have authorized your Flickr
+ * app, and you need to have access to authorized 'oauth token' and 'oauth token
+ * secret' credentials.
+ * If the user has not already authorized your app, and/or you do not already have
+ * access to authorized credentials, you need to first get a request token.
+ * See documentation for getRequestToken further down below.
+ */
+var callApiMethod = function (args) {
+
+  var httpsOptions = signApiMethod(args);
+
   var data = '';
   var req = https.request(httpsOptions, function(res) {
     // console.log('https request statusCode: ', res.statusCode);
@@ -212,7 +271,7 @@ var callApiMethod = function (args) {
 
 /**
  * Function for uploading a file (photo) to Flickr.
- * 
+ *
  * Call the function with a JavaScript object as argument. The JavaScript
  * object should have the following properties:
  *   path: full filesystem path to the file you want to upload
@@ -245,7 +304,7 @@ var callApiMethod = function (args) {
  *     console.log('uploaded photoId: ' + photoId);
  *   }
  * };
- * 
+ *
  * var args = {
  *   path: './myimage.jpg',
  *   flickrConsumerKey: '42...',
@@ -255,9 +314,9 @@ var callApiMethod = function (args) {
  *   callback: myCallback,
  *   optionalArgs: {title: 'Title of the photo'}
  * };
- * 
+ *
  * flickrApi.uploadPhoto(args);
- * 
+ *
  *
  * Note that to call this function, the user needs to have authorized your Flickr
  * app, and you need to have access to authorized 'oauth token' and 'oauth token
@@ -363,7 +422,7 @@ var uploadPhoto = function (args) {
  * This function calls the 'getPhotos' Flickr api to get a number of photos
  * from a particular user. If userId is set to 'me' it will refer to the
  * logged in user.
- * 
+ *
  * Call the function with a JavaScript object as argument. The JavaScript
  * object should have the following properties:
  *   userId: the unique user identifer to get photos from. If set to 'me',
@@ -397,7 +456,7 @@ var uploadPhoto = function (args) {
  *     console.log('Error: ' + err);
  *   }
  * };
- * 
+ *
  * var args = {
  *   userId: 'me',
  *   flickrConsumerKey: '42...',
@@ -406,7 +465,7 @@ var uploadPhoto = function (args) {
  *   oauthTokenSecret: '1b...',
  *   callback: myCallback
  * };
- * 
+ *
  * flickrApi.getPhotos(args);
  *
  *
@@ -530,7 +589,7 @@ var getPhotos = function (args) {
  *     console.log('error: ' + err);
  *   }
  * };
- * 
+ *
  * var args = {
  *   flickrConsumerKey: '42...',
  *   flickrConsumerKeySecret: 'aa...',
@@ -539,10 +598,10 @@ var getPhotos = function (args) {
  *   oauthVerifier: 'd7...',
  *   callback: myCallback
  * };
- * 
+ *
  * flickrApi.useRequestTokenToGetAccessToken(args);
- * 
- * 
+ *
+ *
  * Note that if you already have access to authorized oauthToken and
  * oauthTokenSecret credentials, and if the user already has authorized your app,
  * you don't need to call this function. Instead you can call for example
@@ -566,7 +625,7 @@ var useRequestTokenToGetAccessToken = function (args) {
     oauth_token : oauthToken
   };
 
-  var cryptoMessage = createSortedKeyValuePairString('GET&https%3A%2F%2F' + 
+  var cryptoMessage = createSortedKeyValuePairString('GET&https%3A%2F%2F' +
                                     'www.flickr.com%2Fservices%2Foauth%2Faccess_token&',
                                     parameters, '%3D', '%26', percentEncodeTwice);
 
@@ -664,7 +723,7 @@ var useRequestTokenToGetAccessToken = function (args) {
  *     'useRequestTokenToGetAccessToken'.
  *
  * Example:
- * 
+ *
  * var myCallback = function (err, data) {
  *   if (!err) {
  *     console.log('Remember the credentials:');
@@ -675,7 +734,7 @@ var useRequestTokenToGetAccessToken = function (args) {
  *     console.log('Error: ' + err);
  *   }
  * };
- * 
+ *
  * var args = {
  *   flickrConsumerKey: '42...',
  *   flickrConsumerKeySecret: 'aa...',
@@ -683,9 +742,9 @@ var useRequestTokenToGetAccessToken = function (args) {
  *   redirectUrl: 'http://www.redirecturl...',
  *   callback: myCallback
  * };
- * 
+ *
  * flickrApi.getRequestToken(args);
- * 
+ *
  */
 var getRequestToken = function (args) {
   var flickrConsumerKey = args['flickrConsumerKey'];
@@ -703,13 +762,13 @@ var getRequestToken = function (args) {
     oauth_callback : redirectUrl
   };
 
-  var cryptoMessage = createSortedKeyValuePairString('GET&https%3A%2F%2F' + 
+  var cryptoMessage = createSortedKeyValuePairString('GET&https%3A%2F%2F' +
                                     'www.flickr.com%2Fservices%2Foauth%2Frequest_token&',
                                     parameters, '%3D', '%26', percentEncodeTwice);
 
   var cryptoKey = flickrConsumerKeySecret + '&';
   var signature = createSignature(cryptoMessage, cryptoKey);
-  
+
   var parameterString = createSortedKeyValuePairString('', parameters, '=', '&',
                                                         percentEncode);
 
@@ -731,13 +790,13 @@ var getRequestToken = function (args) {
       var str = String(d);
       var oauthToken = findStringBetween(str, 'oauth_token=', '&');
       var oauthTokenSecret = findStringBetween(str, 'oauth_token_secret=', '&');
-   
+
       var url = 'https://www.flickr.com/services/oauth/authorize?oauth_token=' +
           oauthToken + '&perms=' + permissions;
 
       if (callback && (callback instanceof Function)) {
         if (oauthToken && oauthTokenSecret) {
-          callback(null, {oauthToken: oauthToken, 
+          callback(null, {oauthToken: oauthToken,
                          oauthTokenSecret: oauthTokenSecret,
                          url: url});
         } else {
@@ -763,3 +822,4 @@ exports.useRequestTokenToGetAccessToken = useRequestTokenToGetAccessToken;
 exports.uploadPhoto = uploadPhoto;
 exports.getPhotos = getPhotos;
 exports.callApiMethod = callApiMethod;
+exports.signApiMethod = signApiMethod;
