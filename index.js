@@ -244,7 +244,8 @@ var signApiMethod = function (args) {
 var callApiMethod = function (args) {
 
   var httpsOptions = signApiMethod(args);
-
+  var callback = args['callback'];
+  
   var data = '';
   var req = https.request(httpsOptions, function(res) {
     // console.log('https request statusCode: ', res.statusCode);
