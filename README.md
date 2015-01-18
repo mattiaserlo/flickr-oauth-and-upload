@@ -151,6 +151,7 @@ BSD-2-Clause
 
 ## Release History
 
+* 0.8.0 Bugfix: callback argument was not properly considered
 * 0.7.0 Offer signing as a separate function, signApiMethod
 * 0.6.0 Changed function arguments, now functions take objects as input
 * 0.5.1 Improved documentation

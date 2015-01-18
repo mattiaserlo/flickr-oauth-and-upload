@@ -1,6 +1,6 @@
 {
   "name": "flickr-oauth-and-upload",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "description": "Library that handles Flickr OAuth1.0 flow and photo upload",
   "main": "index.js",
   "scripts": {
