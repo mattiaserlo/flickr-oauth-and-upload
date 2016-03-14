@@ -156,7 +156,7 @@ var signApiMethod = function (args) {
   }
 
   var cryptoMessage = createSortedKeyValuePairString('POST&https%3A%2F%2F' +
-                                    'api.flickr.com%2Fservices%2Frest',
+                                    'api.flickr.com%2Fservices%2Frest&',
                                     parameters, '%3D', '%26', percentEncodeTwice);
 
   var cryptoKey = flickrConsumerKeySecret + '&' + oauthTokenSecret;
