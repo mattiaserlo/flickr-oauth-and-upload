@@ -166,11 +166,6 @@ var signApiMethod = function (args) {
 
   parameterString += '&oauth_signature=' + signature;
 
-  console.log(cryptoMessage);
-  console.log(cryptoKey);
-  console.log(signature);
-  console.log(parameterString);
-
   var path = '/services/rest';
 
   var httpsOptions = {
