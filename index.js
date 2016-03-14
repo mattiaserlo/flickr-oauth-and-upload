@@ -48,8 +48,7 @@ var createSignature = function (message, key) {
   return signature;
 };
 
-var createSortedKeyValuePairString = function ( preString, args, keyValueSeparator,
-                                                keySeparator, convertFunc) {
+var createSortedKeyValuePairString = function (preString, args, keyValueSeparator, keySeparator, convertFunc) {
   var prop;
   var sortedKeys = [];
   var keyValuePairString = preString;
@@ -128,6 +127,7 @@ var createSortedKeyValuePairString = function ( preString, args, keyValueSeparat
  * See documentation for getRequestToken further down below.
  */
 var signApiMethod = function (args) {
+  console.log("** IN SIGN API METHOD **");
   var method = args['method'];
   var flickrConsumerKey = args['flickrConsumerKey'];
   var flickrConsumerKeySecret = args['flickrConsumerKeySecret'];
@@ -165,6 +165,11 @@ var signApiMethod = function (args) {
                                                         percentEncode);
 
   parameterString += '&oauth_signature=' + signature;
+
+  console.log(cryptoMessage);
+  console.log(cryptoKey);
+  console.log(signature);
+  console.log(parameterString);
 
   var path = '/services/rest';
 
