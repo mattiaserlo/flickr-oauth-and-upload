@@ -127,7 +127,6 @@ var createSortedKeyValuePairString = function (preString, args, keyValueSeparato
  * See documentation for getRequestToken further down below.
  */
 var signApiMethod = function (args) {
-  console.log("** IN SIGN API METHOD **");
   var method = args['method'];
   var flickrConsumerKey = args['flickrConsumerKey'];
   var flickrConsumerKeySecret = args['flickrConsumerKeySecret'];
